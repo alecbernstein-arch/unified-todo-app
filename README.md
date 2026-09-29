@@ -237,8 +237,15 @@ steps in the in-app Settings page.)*
    **Deployments** tab → the "..." menu on the latest deployment →
    **Redeploy**.
 
-Vercel automatically runs the sync job every 15 minutes from here on
-(defined in `vercel.json`) — nothing else to set up for that.
+Vercel automatically runs the sync job once a day (1pm UTC) from here on
+(defined in `vercel.json`) — nothing else to set up for that. This is
+once-daily rather than every 15 minutes because Vercel's free Hobby plan
+only allows daily cron jobs; more frequent schedules need a paid Pro plan.
+You can still get an on-demand refresh anytime by visiting
+`/api/cron/sync` yourself with the `Authorization: Bearer <CRON_SECRET>`
+header (same as the local-testing curl command below), or change the
+schedule in `vercel.json` (standard cron syntax) if you upgrade to Pro
+later.
 
 ---
 
@@ -269,9 +276,9 @@ Share button → **Add to Home Screen**.
 - **Google sign-in shows an error about the app not being verified**:
   normal in Testing mode — click **Advanced → Go to (app name) (unsafe)**
   to proceed; this only shows for accounts on the Test users list.
-- **Nothing shows up in Triage**: the sync job runs every 15 minutes on
-  the deployed site — it doesn't run automatically while using `npm run
-  dev` locally. To trigger it manually while testing locally, run (with
+- **Nothing shows up in Triage**: on the deployed site, the sync job now
+  only runs automatically once a day (Hobby plan cron limit — see above);
+  it doesn't run automatically at all while using `npm run dev` locally. To trigger it manually while testing locally, run (with
   your own `CRON_SECRET` from `.env`):
   ```
   curl -H "Authorization: Bearer YOUR_CRON_SECRET" http://localhost:3000/api/cron/sync

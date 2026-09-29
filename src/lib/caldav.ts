@@ -66,14 +66,18 @@ export async function fetchICloudEvents(
 
     for (const obj of objects) {
       if (!obj.data) continue;
-      let parsed: ical.CalendarResponse;
+      // `ical.CalendarResponse` isn't resolvable as a type through this
+      // default import (node-ical's type export doesn't work that way) —
+      // using `any` here sidesteps that rather than fighting the package's
+      // type definitions for what's inherently loosely-shaped parsed data.
+      let parsed: any;
       try {
         parsed = ical.parseICS(obj.data);
       } catch {
         continue; // skip anything we can't parse rather than fail the whole sync
       }
 
-      for (const component of Object.values(parsed)) {
+      for (const component of Object.values(parsed) as any[]) {
         if (component.type !== "VEVENT") continue;
         const uid = component.uid;
         const title = component.summary || "(untitled event)";

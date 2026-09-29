@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api-client";
 import { List, Task } from "@/lib/types";
@@ -10,7 +10,7 @@ import { ManualAddForm } from "@/components/ManualAddForm";
 import { UndoToast, useUndoToast } from "@/components/UndoToast";
 import { getListColor } from "@/lib/listColors";
 
-export default function TodoPage() {
+function TodoPageInner() {
   const searchParams = useSearchParams();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [lists, setLists] = useState<List[]>([]);
@@ -211,5 +211,13 @@ export default function TodoPage() {
 
       <UndoToast message={toast.message} onUndo={load} onDismiss={toast.dismiss} />
     </div>
+  );
+}
+
+export default function TodoPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink/70">Loading…</p>}>
+      <TodoPageInner />
+    </Suspense>
   );
 }

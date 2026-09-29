@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api-client";
 import { List } from "@/lib/types";
@@ -24,7 +24,7 @@ type CalendarConnection = {
 
 type IgnoredSender = { id: string; email_address: string; ignored_at: string };
 
-export default function SettingsPage() {
+function SettingsPageInner() {
   const searchParams = useSearchParams();
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [calConnection, setCalConnection] = useState<CalendarConnection | null>(null);
@@ -358,5 +358,13 @@ export default function SettingsPage() {
         </form>
       </section>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink/70">Loading…</p>}>
+      <SettingsPageInner />
+    </Suspense>
   );
 }
