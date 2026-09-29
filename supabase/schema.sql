@@ -19,6 +19,7 @@ create table if not exists lists (
   name text not null,
   is_default boolean not null default false,
   position integer not null default 0, -- display order on the Dashboard; user-reorderable
+  color text, -- user-chosen hex color; falls back to the rotating palette by position when null
   created_at timestamptz not null default now()
 );
 

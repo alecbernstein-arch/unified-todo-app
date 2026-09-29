@@ -2,6 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { format, addDays, parseISO } from "date-fns";
+import clsx from "clsx";
 import { apiFetch } from "@/lib/api-client";
 import { List, Task } from "@/lib/types";
 import { TaskRow } from "@/components/TaskRow";
@@ -9,6 +11,8 @@ import { ListSidebar } from "@/components/ListSidebar";
 import { ManualAddForm } from "@/components/ManualAddForm";
 import { UndoToast, useUndoToast } from "@/components/UndoToast";
 import { getListColor } from "@/lib/listColors";
+
+type DayMode = "all" | "today" | "tomorrow" | "custom";
 
 function TodoPageInner() {
   const searchParams = useSearchParams();
@@ -22,19 +26,30 @@ function TodoPageInner() {
   const [loading, setLoading] = useState(true);
   const toast = useUndoToast();
 
+  // --- Today / Tomorrow / Custom / All, same as the Dashboard ---
+  const [dayMode, setDayMode] = useState<DayMode>("all");
+  const [customDate, setCustomDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+
   // --- Task drag-to-reorder state ---
-  // Only meaningful (and only ever rendered) when viewing one specific list
-  // with no active search — manual order doesn't have a coherent meaning
-  // across a mixed/filtered set of tasks.
+  // Only meaningful (and only ever rendered) with no active search or day
+  // filter — manual order doesn't have a coherent meaning across a
+  // mixed/filtered set of tasks.
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const [overTaskId, setOverTaskId] = useState<string | null>(null);
-  const reorderable = Boolean(activeListId) && !search;
+  const reorderable = Boolean(activeListId) && !search && dayMode === "all";
 
   async function load() {
     const params = new URLSearchParams();
     if (activeListId) params.set("list_id", activeListId);
     if (search) params.set("q", search);
+    if (dayMode === "today") {
+      params.set("due_before_or_on", format(new Date(), "yyyy-MM-dd")); // today + overdue
+    } else if (dayMode === "tomorrow") {
+      params.set("due_on", format(addDays(new Date(), 1), "yyyy-MM-dd"));
+    } else if (dayMode === "custom") {
+      params.set("due_on", customDate);
+    }
 
     const [tasksRes, listsRes] = await Promise.all([
       apiFetch<{ tasks: Task[] }>(`/api/tasks?${params.toString()}`),
@@ -52,7 +67,7 @@ function TodoPageInner() {
     const interval = setInterval(load, 8000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeListId, search]);
+  }, [activeListId, search, dayMode, customDate]);
 
   async function handleDropTask(listId: string, taskId: string) {
     await apiFetch(`/api/tasks/${taskId}`, {
@@ -109,6 +124,8 @@ function TodoPageInner() {
   const activeList = lists.find((l) => l.id === activeListId) ?? null;
   const activeColor = getListColor(lists, activeListId);
   const draggedTask = draggingTaskId ? tasks.find((t) => t.id === draggingTaskId) ?? null : null;
+  const customDateLabel =
+    dayMode === "custom" ? format(parseISO(customDate), "EEE, MMM d") : null;
 
   return (
     <div>
@@ -149,8 +166,55 @@ function TodoPageInner() {
         />
       </div>
 
+      {/* Today / Tomorrow / Custom / All — filters tasks within whatever list(s) are showing */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setDayMode("all")}
+          className={clsx(
+            "rounded-full px-3.5 py-1.5 text-xs font-medium",
+            dayMode === "all" ? "bg-amber text-ink" : "bg-ink/10 text-ink/75"
+          )}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setDayMode("today")}
+          className={clsx(
+            "rounded-full px-3.5 py-1.5 text-xs font-medium",
+            dayMode === "today" ? "bg-amber text-ink" : "bg-ink/10 text-ink/75"
+          )}
+        >
+          Today
+        </button>
+        <button
+          onClick={() => setDayMode("tomorrow")}
+          className={clsx(
+            "rounded-full px-3.5 py-1.5 text-xs font-medium",
+            dayMode === "tomorrow" ? "bg-amber text-ink" : "bg-ink/10 text-ink/75"
+          )}
+        >
+          Tomorrow
+        </button>
+        <input
+          type="date"
+          value={customDate}
+          onChange={(e) => {
+            if (!e.target.value) return;
+            setCustomDate(e.target.value);
+            setDayMode("custom");
+          }}
+          className={clsx(
+            "rounded-full border-0 px-3.5 py-1.5 text-xs font-medium",
+            dayMode === "custom" ? "bg-amber text-ink" : "bg-ink/10 text-ink/75"
+          )}
+        />
+        {dayMode === "custom" && customDateLabel && (
+          <span className="text-xs text-ink/50">Viewing {customDateLabel}</span>
+        )}
+      </div>
+
       <div className="mb-4">
-        <ManualAddForm lists={lists} defaultListId={activeListId} onAdded={load} />
+        <ManualAddForm lists={lists} defaultListId={activeListId} color={activeColor} onAdded={load} />
       </div>
 
       <input

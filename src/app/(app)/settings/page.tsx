@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api-client";
 import { List } from "@/lib/types";
 import { ListManager } from "@/components/ListManager";
+import { getListColor } from "@/lib/listColors";
 import { EMAIL_FEATURE_ENABLED } from "@/lib/features";
 
 type ConnectedAccount = {
@@ -119,6 +120,16 @@ function SettingsPageInner() {
     load();
   }
 
+  async function updateListColor(id: string, color: string) {
+    await apiFetch(`/api/lists/${id}`, { method: "PATCH", body: JSON.stringify({ color }) });
+    load();
+  }
+
+  async function resetListColor(id: string) {
+    await apiFetch(`/api/lists/${id}`, { method: "PATCH", body: JSON.stringify({ color: null }) });
+    load();
+  }
+
   async function saveLookback() {
     await apiFetch("/api/settings", { method: "PATCH", body: JSON.stringify({ lookback_days: lookbackDays }) });
   }
@@ -185,6 +196,46 @@ function SettingsPageInner() {
       <section>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink/70">Manage lists</h2>
         <ListManager />
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink/70">Colors</h2>
+        <p className="mb-3 text-xs text-ink/60">
+          Pick any color for a list — it shows up everywhere that list appears (Dashboard, list switcher,
+          task borders, and more). Tapping the swatch opens your device's own color picker, including a
+          full color wheel on Mac.
+        </p>
+        <div className="space-y-2">
+          {lists.map((list) => {
+            const currentColor = getListColor(lists, list.id);
+            return (
+              <div key={list.id} className="flex items-center justify-between rounded-md border border-line bg-surface px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-6 w-6 shrink-0 rounded-full border border-line"
+                    style={{ backgroundColor: currentColor }}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate text-sm text-ink">{list.name}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <input
+                    type="color"
+                    value={currentColor}
+                    onChange={(e) => updateListColor(list.id, e.target.value)}
+                    className="h-8 w-12 cursor-pointer rounded border border-line bg-transparent p-0.5"
+                    aria-label={`Choose a color for ${list.name}`}
+                  />
+                  {list.color && (
+                    <button onClick={() => resetListColor(list.id)} className="text-xs text-ink/50">
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {EMAIL_FEATURE_ENABLED && (

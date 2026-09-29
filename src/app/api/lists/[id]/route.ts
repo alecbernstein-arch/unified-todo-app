@@ -6,12 +6,31 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { name } = await request.json();
-  if (!name || typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "A list name is required" }, { status: 400 });
+  const body = await request.json();
+  const updates: Record<string, unknown> = {};
+
+  if ("name" in body) {
+    if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
+      return NextResponse.json({ error: "A list name is required" }, { status: 400 });
+    }
+    updates.name = body.name.trim();
   }
+
+  if ("color" in body) {
+    // A real hex string sets a custom color; null explicitly clears it,
+    // reverting that list to the rotating-palette fallback.
+    if (body.color !== null && !/^#[0-9a-fA-F]{6}$/.test(body.color ?? "")) {
+      return NextResponse.json({ error: "color must be a hex string like #C2542D, or null" }, { status: 400 });
+    }
+    updates.color = body.color;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+  }
+
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("lists").update({ name: name.trim() }).eq("id", id);
+  const { error } = await supabase.from("lists").update(updates).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

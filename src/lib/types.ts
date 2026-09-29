@@ -3,6 +3,7 @@ export type List = {
   name: string;
   is_default: boolean;
   position: number;
+  color: string | null; // user-chosen; falls back to the rotating palette by position when null
   created_at: string;
 };
 

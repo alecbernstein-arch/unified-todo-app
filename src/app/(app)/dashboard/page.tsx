@@ -6,7 +6,7 @@ import { format, addDays, parseISO } from "date-fns";
 import clsx from "clsx";
 import { apiFetch } from "@/lib/api-client";
 import { List, Task } from "@/lib/types";
-import { LIST_TILE_COLORS } from "@/lib/listColors";
+import { NEUTRAL_LIST_COLOR, getListColor } from "@/lib/listColors";
 import { TaskRow } from "@/components/TaskRow";
 import { UndoToast, useUndoToast } from "@/components/UndoToast";
 
@@ -160,12 +160,12 @@ export default function DashboardPage() {
     }))
     .filter((g) => g.tasks.length > 0);
 
-  // Tile counts: every list's tile reflects the selected day, except the
-  // catch-all list, whose tile always shows everything in it.
+  // Row counts always reflect each list's true total, regardless of which
+  // day is selected — only the grouped sections above respond to
+  // Today/Tomorrow/Custom.
   const counts: Record<string, number> = {};
   for (const list of lists) {
-    const source = list.is_default ? allActiveTasks : dayTasks;
-    counts[list.id] = source.filter((t) => t.list_id === list.id).length;
+    counts[list.id] = allActiveTasks.filter((t) => t.list_id === list.id).length;
   }
 
   const customDateLabel =
@@ -231,7 +231,7 @@ export default function DashboardPage() {
               <div className="mb-2 flex items-center gap-2">
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: LIST_TILE_COLORS[lists.findIndex((l) => l.id === list.id) % LIST_TILE_COLORS.length] }}
+                  style={{ backgroundColor: getListColor(lists, list.id) }}
                   aria-hidden="true"
                 />
                 <h2 className="text-sm font-semibold text-ink">{list.name}</h2>
@@ -270,7 +270,7 @@ export default function DashboardPage() {
             <span className="text-sm font-medium">New list</span>
           </button>
 
-          {lists.map((list, i) => {
+          {lists.map((list) => {
             const isDragging = draggingId === list.id;
             const isDropTarget = overId === list.id && draggingId !== null && draggingId !== list.id;
             return (
@@ -284,7 +284,7 @@ export default function DashboardPage() {
                   if (e.key === "Enter" || e.key === " ") router.push(`/todo?list=${list.id}`);
                 }}
                 style={{
-                  backgroundColor: LIST_TILE_COLORS[i % LIST_TILE_COLORS.length],
+                  backgroundColor: getListColor(lists, list.id),
                   opacity: isDragging ? 0.35 : 1,
                   outline: isDropTarget ? "3px solid white" : "3px solid transparent",
                   outlineOffset: "-3px",
@@ -332,7 +332,7 @@ export default function DashboardPage() {
             left: dragPos.x,
             top: dragPos.y,
             transform: "translate(-50%, -50%)",
-            backgroundColor: LIST_TILE_COLORS[draggedIndex % LIST_TILE_COLORS.length],
+            backgroundColor: draggedList ? getListColor(lists, draggedList.id) : NEUTRAL_LIST_COLOR,
             pointerEvents: "none",
             zIndex: 50,
           }}
