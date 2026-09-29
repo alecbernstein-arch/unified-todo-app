@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { apiFetch } from "@/lib/api-client";
-import { List, Task } from "@/lib/types";
+import { List } from "@/lib/types";
 
 /**
  * Collapsed, this is just a button. Clicking it opens the full task-creation
@@ -30,7 +30,7 @@ export function ManualAddForm({
   const [dueDate, setDueDate] = useState("");
   const [hasTime, setHasTime] = useState(false);
   const [dueTime, setDueTime] = useState("");
-  const [priority, setPriority] = useState<Task["priority"] | "">("");
+  const [priority, setPriority] = useState<"" | "low" | "medium" | "high">("");
   const [tags, setTags] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -203,7 +203,7 @@ export function ManualAddForm({
 
         <select
           value={priority}
-          onChange={(e) => setPriority(e.target.value as Task["priority"] | "")}
+          onChange={(e) => setPriority(e.target.value as "" | "low" | "medium" | "high")}
           className="rounded-sm border border-line px-2 py-1.5 text-sm"
         >
           <option value="">No priority</option>
